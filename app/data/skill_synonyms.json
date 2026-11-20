@@ -1,0 +1,29 @@
+{
+  "synonyms": {
+    "js": "javascript",
+    "ts": "typescript",
+    "reactjs": "react",
+    "react.js": "react",
+    "vuejs": "vue",
+    "vue.js": "vue",
+    "nextjs": "next.js",
+    "nuxtjs": "nuxt.js",
+    "nodejs": "node.js",
+    "expressjs": "express",
+    "nestjs": "nest",
+    "k8s": "kubernetes",
+    "postgres": "postgresql",
+    "mssql": "sql server",
+    "py": "python",
+    "golang": "go",
+    "fe": "frontend",
+    "be": "backend",
+    "ba": "business analysis",
+    "qa": "qa_testing",
+    "qc": "qa_testing",
+    "pm": "project management",
+    "po": "product owner",
+    "báo cáo thuế": "kế toán thuế",
+    "misa sme": "misa"
+  }
+}

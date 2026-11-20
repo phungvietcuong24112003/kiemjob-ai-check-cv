@@ -1,0 +1,52 @@
+{
+  "skills": {
+    "backend": [
+      "java", "spring", "spring boot", "spring mvc", "hibernate", "jpa", "c#", ".net", ".net core", "asp.net",
+      "python", "django", "flask", "fastapi", "nodejs", "node.js", "express", "expressjs", "nest", "nestjs",
+      "php", "laravel", "symfony", "ruby", "ruby on rails", "golang", "go", "rust", "scala", "c++", "c"
+    ],
+    "frontend": [
+      "javascript", "typescript", "html", "html5", "css", "css3", "sass", "scss", "tailwind", "tailwindcss",
+      "bootstrap", "react", "reactjs", "react.js", "nextjs", "next.js", "vue", "vuejs", "vue.js", "nuxt",
+      "nuxtjs", "angular", "angularjs", "svelte", "redux", "zustand", "jquery", "webpack", "vite"
+    ],
+    "database": [
+      "sql", "mysql", "postgresql", "postgres", "sql server", "mssql", "oracle", "mongodb", "redis",
+      "elasticsearch", "cassandra", "mariadb", "sqlite", "dynamodb", "neo4j", "prisma"
+    ],
+    "devops_cloud": [
+      "docker", "kubernetes", "k8s", "aws", "amazon web services", "azure", "gcp", "google cloud",
+      "ci/cd", "jenkins", "gitlab ci", "github actions", "terraform", "ansible", "nginx", "linux", "ubuntu",
+      "git", "bitbucket", "helm", "grafana", "prometheus"
+    ],
+    "mobile": [
+      "flutter", "react native", "swift", "swiftui", "kotlin", "android", "ios", "objective-c", "dart"
+    ],
+    "ai_data": [
+      "machine learning", "deep learning", "nlp", "computer vision", "tensorflow", "pytorch", "keras",
+      "pandas", "numpy", "scikit-learn", "data analysis", "power bi", "tableau", "spark", "hadoop", "llm"
+    ],
+    "qa_testing": [
+      "unit test", "junit", "selenium", "cypress", "postman", "jmeter", "automation test", "manual test",
+      "cucumber", "playwright", "qa", "qc"
+    ],
+    "business_management": [
+      "scrum", "agile", "jira", "confluence", "trello", "business analysis", "ba", "project management",
+      "product management", "product owner", "kanban", "kpi"
+    ],
+    "accounting_finance": [
+      "kế toán tổng hợp", "kế toán thuế", "kế toán kho", "kế toán nội bộ", "báo cáo tài chính",
+      "misa", "fast", "bravo", "excel", "kiểm toán", "phân tích tài chính", "hóa đơn điện tử",
+      "kê khai thuế", "quản trị dòng tiền"
+    ],
+    "marketing_sales": [
+      "marketing", "digital marketing", "seo", "sem", "google ads", "facebook ads", "tiktok ads",
+      "content marketing", "copywriting", "social media", "crm", "hubspot", "telesales", "b2b", "b2c",
+      "sales", "chăm sóc khách hàng", "nghiên cứu thị trường"
+    ],
+    "soft_skills": [
+      "giao tiếp", "làm việc nhóm", "teamwork", "giải quyết vấn đề", "tư duy phản biện",
+      "quản lý thời gian", "thuyết trình", "đàm phán", "lãnh đạo", "chịu áp lực"
+    ]
+  }
+}
