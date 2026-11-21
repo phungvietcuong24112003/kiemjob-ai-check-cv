@@ -13,8 +13,10 @@ def test_score_calculator_total():
 
     res = ScoreCalculator.calculate_total(p, o, s, e, proj, edu, cert, fmt)
     assert res["qualityScore"] == 85.0
-    assert res["scoring"]["personalInfoScore"] == 10.0
-    assert res["scoring"]["skillScore"] == 18.0
+    assert res["scoring"].personalInfo.score == 10.0
+    assert res["scoring"].skills.score == 18.0
+    assert res["scoring"].personalInfo.maxScore == 10.0
+    assert len(res["scoring"].personalInfo.reason) > 0
 
 
 def test_score_calculator_bounds():
@@ -30,4 +32,4 @@ def test_score_calculator_bounds():
 
     res = ScoreCalculator.calculate_total(p, o, s, e, proj, edu, cert, fmt)
     assert res["qualityScore"] == 100.0
-    assert res["scoring"]["personalInfoScore"] == 10.0
+    assert res["scoring"].personalInfo.score == 10.0

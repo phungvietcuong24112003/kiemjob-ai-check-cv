@@ -1,11 +1,9 @@
-"""
+r"""
 Script chạy thử nghiệm nhanh AI Service Check CV
 Chạy lệnh: .\venv\Scripts\python test_run.py
 """
 
-import json
-from app.routes.cv_routes import analyze_cv
-from app.schemas.cv_schema import CvAnalyzeRequest
+from app.routes.cv_routes import _process_analysis
 
 # 1. Mẫu CV 1: Đầy đủ thông tin (Kỹ sư Backend Java)
 CV_SAMPLE_FULL = """
@@ -70,18 +68,19 @@ def print_result(title: str, response):
     print(f"🔥 {title}")
     print("=" * 80)
     print(f"⭐ ĐIỂM CHẤT LƯỢNG CV: {response.qualityScore} / 100")
+    print(f"🌐 Ngôn ngữ nhận diện: {response.language.upper()}  |  Phiên bản: {response.algorithmVersion}")
     print("-" * 80)
     
-    scoring = response.parsedData.scoring
-    print("📊 BẢNG ĐIỂM CHI TIẾT 8 TIÊU CHÍ:")
-    print(f"  1. Thông tin cá nhân & liên hệ : {scoring.personalInfoScore:4.1f} / 10.0")
-    print(f"  2. Mục tiêu nghề nghiệp        : {scoring.objectiveScore:4.1f} / 10.0")
-    print(f"  3. Kỹ năng chuyên môn          : {scoring.skillScore:4.1f} / 20.0")
-    print(f"  4. Kinh nghiệm làm việc        : {scoring.experienceScore:4.1f} / 20.0")
-    print(f"  5. Dự án thực tế               : {scoring.projectScore:4.1f} / 20.0")
-    print(f"  6. Học vấn                     : {scoring.educationScore:4.1f} / 10.0")
-    print(f"  7. Chứng chỉ & Thành tích      : {scoring.certificateScore:4.1f} /  5.0")
-    print(f"  8. Cấu trúc & Định dạng        : {scoring.formatScore:4.1f} /  5.0")
+    scoring = response.scoring
+    print("📊 BẢNG ĐIỂM CHI TIẾT 8 TIÊU CHÍ (KÈM LÝ DO):")
+    print(f"  1. Thông tin cá nhân & liên hệ : {scoring.personalInfo.score:4.1f} / {scoring.personalInfo.maxScore:4.1f}  - {scoring.personalInfo.reason}")
+    print(f"  2. Mục tiêu nghề nghiệp        : {scoring.introduction.score:4.1f} / {scoring.introduction.maxScore:4.1f}  - {scoring.introduction.reason}")
+    print(f"  3. Kỹ năng chuyên môn          : {scoring.skills.score:4.1f} / {scoring.skills.maxScore:4.1f}  - {scoring.skills.reason}")
+    print(f"  4. Kinh nghiệm làm việc        : {scoring.experience.score:4.1f} / {scoring.experience.maxScore:4.1f}  - {scoring.experience.reason}")
+    print(f"  5. Dự án thực tế               : {scoring.projects.score:4.1f} / {scoring.projects.maxScore:4.1f}  - {scoring.projects.reason}")
+    print(f"  6. Học vấn                     : {scoring.education.score:4.1f} / {scoring.education.maxScore:4.1f}  - {scoring.education.reason}")
+    print(f"  7. Chứng chỉ & Thành tích      : {scoring.certificates.score:4.1f} / {scoring.certificates.maxScore:4.1f}  - {scoring.certificates.reason}")
+    print(f"  8. Cấu trúc & Định dạng        : {scoring.format.score:4.1f} / {scoring.format.maxScore:4.1f}  - {scoring.format.reason}")
     print("-" * 80)
 
     print("📝 TÓM TẮT HỒ SƠ ỨNG VIÊN:")
@@ -96,12 +95,11 @@ def print_result(title: str, response):
         print("  Hồ sơ rất hoàn thiện, không có gợi ý cải thiện bổ sung.")
     
     print("-" * 80)
-    profile = response.parsedData.searchProfile
     print(f"🔍 PROFILE TÌM KIẾM ĐÃ TRÍCH XUẤT:")
-    print(f"  - Ngành nghề      : {profile.industry}")
-    print(f"  - Cấp bậc         : {profile.seniority}")
-    print(f"  - Số năm kinh nghiệm: {profile.yearsExperience} năm")
-    print(f"  - Kỹ năng nhận diện ({len(profile.skills)}): {', '.join(profile.skills)}")
+    print(f"  - Họ tên          : {response.personalInfo.fullName}")
+    print(f"  - Cấp bậc         : {response.experience.seniority}")
+    print(f"  - Số năm kinh nghiệm: {response.experience.yearsExperience} năm")
+    print(f"  - Kỹ năng nhận diện ({len(response.skills)}): {', '.join(response.skills)}")
     print("=" * 80 + "\n")
 
 
@@ -109,9 +107,9 @@ if __name__ == "__main__":
     print("\n🚀 BẮT ĐẦU CHẠY KIỂM THỬ AI SERVICE CHECK CV...\n")
     
     # Test CV 1
-    res1 = analyze_cv(CvAnalyzeRequest(text=CV_SAMPLE_FULL))
+    res1 = _process_analysis(CV_SAMPLE_FULL)
     print_result("KẾT QUẢ PHÂN TÍCH CV 1: ĐẦY ĐỦ THÔNG TIN (BACKEND JAVA)", res1)
 
     # Test CV 2
-    res2 = analyze_cv(CvAnalyzeRequest(text=CV_SAMPLE_SPARSE))
+    res2 = _process_analysis(CV_SAMPLE_SPARSE)
     print_result("KẾT QUẢ PHÂN TÍCH CV 2: THIẾU THÔNG TIN (KẾ TOÁN)", res2)

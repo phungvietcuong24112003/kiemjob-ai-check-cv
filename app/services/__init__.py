@@ -8,6 +8,7 @@ from app.services.education_analyzer import EducationAnalyzer
 from app.services.certificate_analyzer import CertificateAnalyzer
 from app.services.format_analyzer import FormatAnalyzer
 from app.services.score_calculator import ScoreCalculator
+from app.services.feedback_generator import FeedbackGenerator
 from app.services.suggestion_generator import SuggestionGenerator
 from app.services.summary_generator import SummaryGenerator
 
@@ -22,6 +23,7 @@ __all__ = [
     "CertificateAnalyzer",
     "FormatAnalyzer",
     "ScoreCalculator",
+    "FeedbackGenerator",
     "SuggestionGenerator",
     "SummaryGenerator",
 ]

@@ -2,23 +2,34 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
 
-class CvAnalyzeRequest(BaseModel):
+class AnalyzeCvRequest(BaseModel):
     text: str = Field(
         ...,
         min_length=10,
-        description="Nội dung văn bản CV đã được trích xuất từ PDF hoặc form nhập"
+        max_length=100000,
+        description="Nội dung văn bản CV đã được trích xuất từ PDF bằng PDFBox"
+    )
+    algorithmVersion: Optional[str] = Field(
+        default="v1",
+        description="Phiên bản thuật toán đánh giá"
     )
 
 
-class ScoringBreakdown(BaseModel):
-    personalInfoScore: float = Field(..., ge=0.0, le=10.0, description="Điểm thông tin cá nhân & liên hệ (tối đa 10)")
-    objectiveScore: float = Field(..., ge=0.0, le=10.0, description="Điểm mục tiêu nghề nghiệp / giới thiệu (tối đa 10)")
-    skillScore: float = Field(..., ge=0.0, le=20.0, description="Điểm kỹ năng chuyên môn (tối đa 20)")
-    experienceScore: float = Field(..., ge=0.0, le=20.0, description="Điểm kinh nghiệm làm việc (tối đa 20)")
-    projectScore: float = Field(..., ge=0.0, le=20.0, description="Điểm dự án thực tế (tối đa 20)")
-    educationScore: float = Field(..., ge=0.0, le=10.0, description="Điểm học vấn (tối đa 10)")
-    certificateScore: float = Field(..., ge=0.0, le=5.0, description="Điểm chứng chỉ & thành tích (tối đa 5)")
-    formatScore: float = Field(..., ge=0.0, le=5.0, description="Điểm cấu trúc & định dạng (tối đa 5)")
+class ScoringItem(BaseModel):
+    score: float = Field(..., ge=0.0, description="Điểm số đạt được")
+    maxScore: float = Field(..., ge=0.0, description="Điểm số tối đa của tiêu chí")
+    reason: str = Field(..., description="Giải thích cụ thể vì sao nhận được số điểm này")
+
+
+class ScoringDetail(BaseModel):
+    personalInfo: ScoringItem
+    introduction: ScoringItem
+    skills: ScoringItem
+    experience: ScoringItem
+    projects: ScoringItem
+    education: ScoringItem
+    certificates: ScoringItem
+    format: ScoringItem
 
 
 class PersonalInfo(BaseModel):
@@ -29,28 +40,39 @@ class PersonalInfo(BaseModel):
     links: List[str] = []
 
 
-class SearchProfile(BaseModel):
-    jobTitles: List[str] = []
-    skills: List[str] = []
+class ExperienceDetail(BaseModel):
     yearsExperience: float = 0.0
     seniority: str = "unknown"
+    jobTitles: List[str] = []
+
+
+class EducationDetail(BaseModel):
     educationLevel: str = "dai_hoc"
-    industry: str = "Công nghệ thông tin"
+    university: Optional[str] = None
 
 
-class ParsedCvData(BaseModel):
-    scoring: ScoringBreakdown
-    personalInfo: PersonalInfo
-    searchProfile: SearchProfile
-    details: Dict[str, Any] = {}
+class ProjectDetail(BaseModel):
+    hasProjects: bool = False
+    metricsFound: List[str] = []
+    metricsCount: int = 0
 
 
 class CvAnalyzeResponse(BaseModel):
-    qualityScore: float = Field(..., ge=0.0, le=100.0, description="Điểm tổng thể chất lượng CV trên thang 100")
+    success: bool = True
+    qualityScore: float = Field(..., ge=0.0, le=100.0, description="Điểm tổng thể CV (0 - 100)")
+    scoring: ScoringDetail
+    personalInfo: PersonalInfo
+    skills: List[str] = []
+    experience: ExperienceDetail
+    education: EducationDetail
+    projects: ProjectDetail
+    certificates: List[str] = []
     summary: str = Field(..., description="Tóm tắt nội dung hồ sơ ứng viên")
-    suggestions: List[str] = Field(..., description="Danh sách các gợi ý cải thiện cụ thể")
-    parsedData: ParsedCvData
-    algorithmVersion: str = Field(default="v1-python-rule-based")
+    strengths: List[str] = Field(default_factory=list, description="Danh sách ưu điểm nổi bật của CV")
+    weaknesses: List[str] = Field(default_factory=list, description="Danh sách nhược điểm hoặc hạn chế cần lưu ý")
+    suggestions: List[str] = Field(default_factory=list, description="Danh sách gợi ý cải thiện cụ thể")
+    language: str = Field(default="vi", description="Ngôn ngữ chính nhận diện ('vi' hoặc 'en')")
+    algorithmVersion: str = Field(default="v1")
 
 
 class HealthResponse(BaseModel):

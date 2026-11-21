@@ -43,8 +43,7 @@ def test_english_cv_analysis():
     """
 
     res = client.post(
-        "/api/v1/cv/analyze",
-        headers={"X-Internal-Secret": settings.INTERNAL_SECRET_KEY},
+        "/api/v1/analyze-cv",
         json={"text": english_cv}
     )
 
@@ -52,8 +51,8 @@ def test_english_cv_analysis():
     data = res.json()
     assert data["qualityScore"] >= 80.0
     assert len(data["suggestions"]) > 0
-    assert "react" in data["parsedData"]["searchProfile"]["skills"]
-    assert data["parsedData"]["personalInfo"]["email"] == "john.doe@email.com"
+    assert "react" in [s.lower() for s in data["skills"]]
+    assert data["personalInfo"]["email"] == "john.doe@email.com"
 
 
 def test_missing_info_cv_suggestions():
@@ -75,8 +74,7 @@ def test_missing_info_cv_suggestions():
     """
 
     res = client.post(
-        "/api/v1/cv/analyze",
-        headers={"X-Internal-Secret": settings.INTERNAL_SECRET_KEY},
+        "/api/v1/analyze-cv",
         json={"text": sparse_cv}
     )
 
@@ -94,8 +92,7 @@ def test_missing_info_cv_suggestions():
 
 def test_cv_too_short_raises_400():
     res = client.post(
-        "/api/v1/cv/analyze",
-        headers={"X-Internal-Secret": settings.INTERNAL_SECRET_KEY},
+        "/api/v1/analyze-cv",
         json={"text": "Quá ngắn"}
     )
     # Pydantic validation hoặc endpoint error
@@ -115,8 +112,7 @@ def test_performance_benchmark():
 
     start_time = time.time()
     res = client.post(
-        "/api/v1/cv/analyze",
-        headers={"X-Internal-Secret": settings.INTERNAL_SECRET_KEY},
+        "/api/v1/analyze-cv",
         json={"text": sample}
     )
     elapsed_ms = (time.time() - start_time) * 1000

@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
-from app.core.security import verify_internal_secret
+from fastapi import APIRouter, HTTPException, status
 from app.core.config import settings
+from app.utils.language_detector import LanguageDetector
 from app.schemas.cv_schema import (
-    CvAnalyzeRequest,
+    AnalyzeCvRequest,
     CvAnalyzeResponse,
-    ParsedCvData,
-    ScoringBreakdown,
     PersonalInfo,
-    SearchProfile,
+    ExperienceDetail,
+    EducationDetail,
+    ProjectDetail,
 )
 from app.services import (
     TextCleaner,
@@ -20,24 +20,47 @@ from app.services import (
     CertificateAnalyzer,
     FormatAnalyzer,
     ScoreCalculator,
+    FeedbackGenerator,
     SuggestionGenerator,
     SummaryGenerator,
 )
 
-router = APIRouter(prefix="/api/v1/cv", tags=["CV Analysis"])
+router = APIRouter(prefix="/api/v1", tags=["CV Analysis"])
+
+MAX_TEXT_LENGTH = 50000  # Giới hạn tối đa 50.000 ký tự cho văn bản CV
 
 
-@router.post("/analyze", response_model=CvAnalyzeResponse, dependencies=[Depends(verify_internal_secret)])
-def analyze_cv(request: CvAnalyzeRequest):
-    raw_text = request.text
-    if not raw_text or len(raw_text.strip()) < 10:
-        raise HTTPException(status_code=400, detail="Văn bản CV quá ngắn hoặc không có nội dung")
+def _process_analysis(raw_text: str, algorithm_version: str = "v1") -> CvAnalyzeResponse:
+    """
+    Hàm phân tích cốt lõi từ văn bản CV đã được Spring Boot trích xuất bằng PDFBox.
+    """
+    if not raw_text or not raw_text.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nội dung văn bản CV không được để trống"
+        )
+
+    clean_raw = raw_text.strip()
+    if len(clean_raw) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nội dung văn bản CV quá ngắn (tối thiểu 10 ký tự) để thực hiện phân tích"
+        )
+
+    if len(clean_raw) > MAX_TEXT_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Nội dung văn bản CV vượt quá độ dài tối đa cho phép ({MAX_TEXT_LENGTH} ký tự)"
+        )
 
     # 1. Làm sạch văn bản và phân tách các phần
-    cleaned_text = TextCleaner.clean(raw_text)
+    cleaned_text = TextCleaner.clean(clean_raw)
     sections = TextCleaner.split_sections(cleaned_text)
 
-    # 2. Phân tích 8 nhóm tiêu chí
+    # 2. Nhận diện ngôn ngữ CV ('vi' hoặc 'en')
+    detected_lang = LanguageDetector.detect(cleaned_text)
+
+    # 3. Phân tích 8 nhóm tiêu chí (Thang 100)
     personal_info_res = PersonalInfoAnalyzer.analyze(cleaned_text, sections.get("header", ""))
     objective_res = ObjectiveAnalyzer.analyze(cleaned_text, sections.get("objective", ""))
     skill_res = SkillAnalyzer.analyze(cleaned_text, sections.get("skills", ""))
@@ -47,7 +70,7 @@ def analyze_cv(request: CvAnalyzeRequest):
     certificate_res = CertificateAnalyzer.analyze(cleaned_text, sections.get("certificates", ""))
     format_res = FormatAnalyzer.analyze(cleaned_text, sections)
 
-    # 3. Tính điểm tổng và bảng điểm chi tiết
+    # 4. Tính điểm tổng và bảng điểm chi tiết 8 tiêu chí (mỗi tiêu chí kèm reason)
     score_res = ScoreCalculator.calculate_total(
         personal_info=personal_info_res,
         objective=objective_res,
@@ -59,8 +82,8 @@ def analyze_cv(request: CvAnalyzeRequest):
         format_info=format_res,
     )
 
-    # 4. Sinh gợi ý cải thiện và tóm tắt CV
-    suggestions = SuggestionGenerator.generate(
+    # 5. Sinh nhận xét ưu điểm, nhược điểm, gợi ý cải thiện và tóm tắt CV
+    feedback = FeedbackGenerator.generate(
         personal_info=personal_info_res,
         objective=objective_res,
         skills=skill_res,
@@ -69,7 +92,12 @@ def analyze_cv(request: CvAnalyzeRequest):
         education=education_res,
         certificates=certificate_res,
         format_info=format_res,
+        quality_score=score_res["qualityScore"],
+        language=detected_lang,
     )
+    strengths = feedback.get("strengths", [])
+    weaknesses = feedback.get("weaknesses", [])
+    suggestions = feedback.get("suggestions", [])
 
     summary = SummaryGenerator.generate(
         personal_info=personal_info_res,
@@ -79,16 +107,7 @@ def analyze_cv(request: CvAnalyzeRequest):
         projects=project_res,
     )
 
-    # 5. Xác định nhóm ngành phù hợp
-    industry = "Công nghệ thông tin"
-    categories = skill_res.get("categories", [])
-    if "accounting_finance" in categories:
-        industry = "Kế toán / Kiểm toán"
-    elif "marketing_sales" in categories:
-        industry = "Marketing / Truyền thông"
-
     # 6. Chuẩn bị DTO phản hồi
-    scoring_dto = ScoringBreakdown(**score_res["scoring"])
     personal_info_dto = PersonalInfo(
         fullName=personal_info_res.get("fullName"),
         email=personal_info_res.get("email"),
@@ -96,32 +115,55 @@ def analyze_cv(request: CvAnalyzeRequest):
         location=personal_info_res.get("location"),
         links=personal_info_res.get("links", []),
     )
-    search_profile_dto = SearchProfile(
-        jobTitles=experience_res.get("jobTitles", []),
-        skills=skill_res.get("skills", []),
+
+    experience_dto = ExperienceDetail(
         yearsExperience=experience_res.get("yearsExperience", 0.0),
         seniority=experience_res.get("seniority", "unknown"),
-        educationLevel=education_res.get("educationLevel", "dai_hoc"),
-        industry=industry,
+        jobTitles=experience_res.get("jobTitles", []),
     )
 
-    parsed_data = ParsedCvData(
-        scoring=scoring_dto,
-        personalInfo=personal_info_dto,
-        searchProfile=search_profile_dto,
-        details={
-            "metrics": project_res.get("metricsFound", []),
-            "certificates": certificate_res.get("certificates", []),
-            "awards": certificate_res.get("awards", []),
-            "university": education_res.get("university"),
-            "wordCount": format_res.get("wordCount", 0),
-        },
+    education_dto = EducationDetail(
+        educationLevel=education_res.get("educationLevel", "dai_hoc"),
+        university=education_res.get("university"),
+    )
+
+    project_dto = ProjectDetail(
+        hasProjects=bool(project_res.get("details", {}).get("hasProjects")),
+        metricsFound=project_res.get("metricsFound", []),
+        metricsCount=project_res.get("metricsCount", 0),
     )
 
     return CvAnalyzeResponse(
+        success=True,
         qualityScore=score_res["qualityScore"],
+        scoring=score_res["scoring"],
+        personalInfo=personal_info_dto,
+        skills=skill_res.get("skills", []),
+        experience=experience_dto,
+        education=education_dto,
+        projects=project_dto,
+        certificates=certificate_res.get("certificates", []),
         summary=summary,
+        strengths=strengths,
+        weaknesses=weaknesses,
         suggestions=suggestions,
-        parsedData=parsed_data,
-        algorithmVersion=settings.ALGORITHM_VERSION,
+        language=detected_lang,
+        algorithmVersion=algorithm_version or settings.ALGORITHM_VERSION,
     )
+
+
+@router.post("/analyze-cv", response_model=CvAnalyzeResponse)
+def analyze_cv(request: AnalyzeCvRequest):
+    """
+    Tiếp nhận văn bản CV từ Spring Boot Backend (sau khi đã trích xuất bằng PDFBox),
+    phân tích nội dung và trả về bảng chấm điểm chất lượng 100 điểm kèm gợi ý.
+    """
+    return _process_analysis(request.text, request.algorithmVersion or settings.ALGORITHM_VERSION)
+
+
+@router.post("/cv/analyze", response_model=CvAnalyzeResponse)
+def analyze_cv_alias(request: AnalyzeCvRequest):
+    """
+    Alias endpoint cho /api/v1/analyze-cv.
+    """
+    return _process_analysis(request.text, request.algorithmVersion or settings.ALGORITHM_VERSION)

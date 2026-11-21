@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from app.main import app
+from app.core.config import settings
 
 client = TestClient(app)
 
@@ -50,8 +51,7 @@ def test_analyze_full_cv():
     """
 
     res = client.post(
-        "/api/v1/cv/analyze",
-        headers={"X-Internal-Secret": "kiemjob_internal_secret_change_in_prod"},
+        "/api/v1/analyze-cv",
         json={"text": cv_sample}
     )
 
@@ -61,17 +61,17 @@ def test_analyze_full_cv():
     assert data["qualityScore"] >= 75.0
     assert "suggestions" in data
     assert "summary" in data
-    assert "parsedData" in data
+    assert "scoring" in data
 
-    scoring = data["parsedData"]["scoring"]
-    assert scoring["personalInfoScore"] == 10.0
-    assert scoring["skillScore"] >= 15.0
-    assert scoring["projectScore"] >= 15.0
+    scoring = data["scoring"]
+    assert scoring["personalInfo"]["score"] == 10.0
+    assert scoring["skills"]["score"] >= 15.0
+    assert scoring["projects"]["score"] >= 15.0
 
-    personal = data["parsedData"]["personalInfo"]
+    personal = data["personalInfo"]
     assert personal["email"] == "an.nguyen@example.com"
     assert personal["phone"] == "0987654321"
 
-    profile = data["parsedData"]["searchProfile"]
-    assert "java" in profile["skills"]
-    assert "spring boot" in profile["skills"]
+    skills = data["skills"]
+    assert "java" in [s.lower() for s in skills]
+    assert "spring boot" in [s.lower() for s in skills]
